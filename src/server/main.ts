@@ -1,37 +1,56 @@
-import express from "express"
-import ViteExpress from "vite-express"
+import WebSocket from "ws"
+import { validatePlayerSecure } from "./crypt"
+//using typescript to write a web socket server (prototype)
+//use ws package
+const wss = new WebSocket.Server({ port: 5000 })
 
-const app = express()
+//create a connection event
 
-//our commands
-/*
+const connections: {
+  [key: string]: {
+    ws: WebSocket
+    data: { [key: string]: any }
+  }
+} = {}
 
-USER BASED
-POST login ()
-POST logout ()
+const sendTo = (ws: WebSocket, type: string, data: any) => {
+  return ws.send(type + ";" + JSON.stringify(data))
+}
 
-GET chunk data () //called always each 100 seconds
-GET player data [u]
-POST fight player [u]
+wss.on("connection", (ws: WebSocket) => {
+  //store the connection
 
-*/
+  //generate random hash id
 
-app.post("/login/:player_id", (req, res) => {
-  res.send("Hello Vite " + req.params.player_id)
+  const id =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+
+  ws.on("message", (message: string) => {
+    const client = connections[id]
+    const json = JSON.parse(message)
+
+    const playerId = json.playerId
+    const secure = json.secure
+    const data = json.data
+
+    const validation = validatePlayerSecure(playerId, secure)
+
+    if (!validation) {
+      ws.close()
+      console.error("Invalid secure " + playerId + " " + secure)
+      return
+    }
+
+    switch (json.type) {
+      case "set-login":
+        connections[id] = {
+          ws,
+          data: {},
+        }
+        break
+    }
+
+    console.log(`Received: ${message}`)
+  })
 })
-
-app.get("/player/:player_id", (req, res) => {})
-app.get("/lobby/:lobby_id", (req, res) => {})
-app.post("/playRandomly/:player_id", (req, res) => {})
-app.post("/joinLobby/:player_id", (req, res) => {})
-app.post("/leaveLobby/:player_id", (req, res) => {})
-app.post("/declareWinner:player_id/:match_id", (req, res) => {})
-app.post("/declareLoser:player_id/:match_id", (req, res) => {})
-
-app.get("/hello", (_, res) => {
-  res.send("Hello Vite")
-})
-
-ViteExpress.listen(app, 3000, () =>
-  console.log("Server is listening on port 3000...")
-)
