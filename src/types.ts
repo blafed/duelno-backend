@@ -1,8 +1,16 @@
+import WebSocket from "ws"
+import { type } from "os"
+
 type Point = {
   x: number
   y: number
 }
-type PlayerStatus = "idle" | "playing" | "invited"
+
+enum PlayerStatus {
+  idle,
+  invitied,
+  playing,
+}
 type PlayerData = {
   position: Point
   status: PlayerStatus
@@ -18,7 +26,8 @@ type AllConnections = {
 }
 
 type AllData = {
-  [key: string]: PlayerData
+  connections: AllConnections
+  lobbies: Lobby[]
 }
 
 type InvitationData = {
@@ -40,7 +49,7 @@ const defaultPoint: Point = {
 
 const defaultPlayerData: PlayerData = {
   position: defaultPoint,
-  status: "idle",
+  status: 0,
   playerId: "",
   wins: 0,
   gamesPlayed: 0,
@@ -54,4 +63,21 @@ const defaultInvitationData: InvitationData = {
   invitationId: "",
   bet: 0,
   endTime: new Date(),
+}
+
+export type {
+  Point,
+  PlayerStatus,
+  PlayerData,
+  AllConnections,
+  AllData,
+  InvitationData,
+  PlayerConnection,
+}
+
+export { defaultPoint, defaultPlayerData, defaultInvitationData }
+
+type Lobby = {
+  players: PlayerData[]
+  maxPlayers: number
 }

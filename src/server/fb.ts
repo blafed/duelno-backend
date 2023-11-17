@@ -1,15 +1,15 @@
 import { ref, set, get } from "firebase/database"
 import { auth, db } from "./fbinit"
-import { Point } from "./types"
+import { Point } from "../types"
 
-export async function login(uid: string) {
-  let currentChunk = (await get(ref(db, `meta/currentChunk`))).val()
-  if (currentChunk == null) {
-    currentChunk = { x: 0, y: 0 }
-  }
+// export async function login(uid: string) {
+//   let currentChunk = (await get(ref(db, `meta/currentChunk`))).val()
+//   if (currentChunk == null) {
+//     currentChunk = { x: 0, y: 0 }
+//   }
 
-  set(ref(db, `users/${uid}/login`), true)
-}
+//   set(ref(db, `users/${uid}/login`), true)
+// }
 
 async function updateChunk(uid: string, chunk: Point, isAdded: boolean) {
   let r = ref(db, `chunks/${chunk.x}/${chunk.y}/players/${uid}`)

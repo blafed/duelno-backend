@@ -1,4 +1,4 @@
-import { Point } from "./types"
+import { Point } from "../types"
 
 export function walk(spot: Point, index: number) {
   const diameter = Math.sqrt(index)

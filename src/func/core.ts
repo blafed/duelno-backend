@@ -1,9 +1,16 @@
-export const sendTo = (ws: WebSocket, type: string, data: any) => {
+import WebSocket from "ws"
+import { PlayerConnection } from "../types"
+
+export const sendTo = (conn: PlayerConnection, type: string, data: any) => {
+  return sendToSocket(conn.ws, type, data)
+}
+
+export const sendToSocket = (ws: WebSocket, type: string, data: any) => {
   return ws.send(type + ";" + JSON.stringify(data))
 }
 
 export const sendErrorTo = (
-  ws: WebSocket,
+  conn: PlayerConnection,
   type: string,
   message: string,
   data: object = {}
@@ -13,5 +20,5 @@ export const sendErrorTo = (
     ...data,
   }
 
-  sendTo(ws, "error-" + type, obj)
+  sendTo(conn, "error-" + type, obj)
 }

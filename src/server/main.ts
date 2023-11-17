@@ -1,5 +1,7 @@
 import WebSocket from "ws"
 import { validatePlayerSecure } from "./crypt"
+import WholeState from "../models/WholeState"
+import PlayerData from "../models/PlayerData"
 //using typescript to write a web socket server (prototype)
 //use ws package
 const wss = new WebSocket.Server({ port: 5000 })
@@ -17,38 +19,111 @@ const sendTo = (ws: WebSocket, type: string, data: any) => {
   return ws.send(type + ";" + JSON.stringify(data))
 }
 
+const state = new WholeState()
+
 wss.on("connection", (ws: WebSocket) => {
+  console.log("new connection ")
+
+  const connection = state.createConnection(ws)
+
+  sendTo(ws, "connection", { connectionId: connection.connectionId })
   //store the connection
 
   //generate random hash id
-
-  const id =
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
+  ws.on("close", () => {
+    state.removeConnecition(ws)
+  })
 
   ws.on("message", (message: string) => {
-    const client = connections[id]
-    const json = JSON.parse(message)
+    try {
+      console.log("messaged receive" + message)
+      const json = JSON.parse(message)
 
-    const playerId = json.playerId
-    const secure = json.secure
-    const data = json.data
+      const playerId: string = json.playerId
+      const secure: string = json.secure
+      const connectionId: string = json.connectionId
 
-    const validation = validatePlayerSecure(playerId, secure)
+      let validation = false
 
-    if (!validation) {
+      if (connectionId) {
+        validation = state.validateConnectionId(connectionId)
+      } else {
+        validatePlayerSecure(playerId, secure)
+      }
+
+      if (!validation) {
+        ws.close()
+        if (connectionId) console.error("Invalid connection " + connectionId)
+        else console.error("Invalid secure " + playerId + " " + secure)
+        return
+      }
+
+      switch (json.type) {
+        case "init":
+          {
+            const data: PlayerData = json.data
+            const connection = state.getConnection(connectionId)
+
+            if (!connection) {
+              ws.close()
+              console.error("Invalid connection " + connectionId)
+              return
+            }
+
+            connection.playerRef.data = data
+            connection.playerRef.id = playerId
+          }
+
+          break
+
+        case "join-random-lobby":
+          {
+            const lobby = state.lobbyManager.findSuitableOrCreateNew()
+            const connection = state.getConnection(connectionId)
+            if (!connection) {
+              ws.close()
+              console.error("Invalid connection " + connectionId)
+              return
+            }
+            lobby.addPlayer(connection.playerRef, connection.ws)
+            lobby.sendToAll("player-joined", {
+              ...connection.playerRef.data,
+              playerId: connection.playerRef.id,
+              position: {
+                x: Math.random() * 100,
+                y: Math.random() * 100,
+              },
+              status: 0,
+            })
+          }
+          break
+
+        case "leave-lobby":
+          {
+            const connection = state.getConnection(connectionId)
+
+            if (!connection) {
+              ws.close()
+              console.error("Invalid connection " + connectionId)
+              return
+            }
+
+            // const lobby = state.lobbyManager.findByPlayer(connection.playerRef)
+          }
+          break
+        case "login":
+          {
+            const connection = state.createConnection(ws)
+            const id = connection.connectionId
+
+            sendTo(ws, "login", {})
+          }
+
+          break
+      }
+    } catch (e) {
       ws.close()
-      console.error("Invalid secure " + playerId + " " + secure)
-      return
-    }
-
-    switch (json.type) {
-      case "set-login":
-        connections[id] = {
-          ws,
-          data: {},
-        }
-        break
+      console.error(e)
     }
 
     console.log(`Received: ${message}`)
