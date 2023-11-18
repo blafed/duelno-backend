@@ -108,17 +108,26 @@ wss.on("connection", (ws: WebSocket) => {
               return
             }
 
+            const lobby = state.lobbyManager.getLobbyById(
+              connection.playerRef.lobbyId
+            )
+
+            if (!lobby) {
+              ws.close()
+              console.error("Invalid lobby " + connection.playerRef.lobbyId)
+              return
+            }
+            lobby.sendToAll("player-left", connection.playerRef.id)
+
+            lobby.removePlayer(connection.playerRef)
+
             // const lobby = state.lobbyManager.findByPlayer(connection.playerRef)
           }
           break
-        case "login":
-          {
-            const connection = state.createConnection(ws)
-            const id = connection.connectionId
 
-            sendTo(ws, "login", {})
-          }
-
+        default:
+          console.log("Unknown message type " + json.type)
+          ws.close()
           break
       }
     } catch (e) {

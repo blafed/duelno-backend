@@ -33,4 +33,9 @@ export default class LobbyManager {
       return this.createNew()
     }
   }
+
+  getLobbyById(id: number) {
+    if (id >= this.lobbies.length) return null
+    return this.lobbies[id]
+  }
 }

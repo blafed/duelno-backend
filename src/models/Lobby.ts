@@ -18,6 +18,7 @@ export default class Lobby {
   addPlayer(player: PlayerRef, ws: WebSocket) {
     this.players.push(player)
     this.sockets.push(ws)
+    player.lobbyId = this.id
   }
   removePlayer(player: PlayerRef) {
     const index = this.players.indexOf(player)

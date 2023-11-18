@@ -4,4 +4,5 @@ export default class PlayerRef {
   id: string = ""
   data: PlayerData = new PlayerData()
   currentInvitationId: string = ""
+  lobbyId: number = -1
 }
