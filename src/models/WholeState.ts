@@ -28,7 +28,12 @@ export default class WholeState {
   }
 
   getPlayer(playerId: string) {
-    return this.connections.find((c) => c.playerRef.id == playerId)?.playerRef
+    return this.connections.find((c) => c.playerRef.data.playerId == playerId)
+      ?.playerRef
+  }
+
+  getConnectionOfPlayer(playerRef: PlayerRef) {
+    return this.connections.find((c) => c.playerRef == playerRef)
   }
 
   createConnection(ws: WebSocket) {

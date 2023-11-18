@@ -67,13 +67,14 @@ const defaultInvitationData: InvitationData = {
 
 export type {
   Point,
-  PlayerStatus,
   PlayerData,
   AllConnections,
   AllData,
   InvitationData,
   PlayerConnection,
 }
+
+export { PlayerStatus }
 
 export { defaultPoint, defaultPlayerData, defaultInvitationData }
 
