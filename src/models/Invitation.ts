@@ -1,9 +1,32 @@
 import { INVITATION_DURATION, INVITATION_DURATION_MS } from "../server/consts"
 import { PlayerStatus } from "../types"
 import { makeid } from "../utils"
+import Challenge from "./Challenge"
 import PlayerRef from "./PlayerRef"
 
 export default class Invitation {
+  cancel() {
+    if (this.from && this.from.currentInvitation === this) {
+      this.from.data.status = PlayerStatus.idle
+      this.from.currentInvitation = null
+    }
+
+    if (this.to && this.to.currentInvitation === this) {
+      this.to.data.status = PlayerStatus.idle
+      this.to.currentInvitation = null
+    }
+  }
+
+  finish() {
+    this.cancel()
+  }
+
+  accept(): Challenge | null {
+    if (this.isExpired()) return null
+    const challenge = new Challenge(this.from, this.to, this.bet)
+    this.finish()
+    return challenge
+  }
   invitationId: string = ""
   from: PlayerRef
   to: PlayerRef

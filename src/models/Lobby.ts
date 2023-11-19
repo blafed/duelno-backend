@@ -64,20 +64,15 @@ export default class Lobby {
     )
   }
 
-  makePlayerRandomPlay(player: PlayerRef) {
-    if (player == this.randomPlayer) return
+  makePlayerRandomPlay(player: PlayerRef): Challenge | null {
+    if (player == this.randomPlayer) return null
     if (this.randomPlayer) {
-      const roomId = this.createChallenge(
-        this.randomPlayer,
-        player,
-        RANDOM_PLAY_BET
-      )
+      return new Challenge(this.randomPlayer, player, RANDOM_PLAY_BET)
       this.randomPlayer = null
-      return roomId
     } else {
       this.randomPlayer = player
       player.data.status = PlayerStatus.invitied
-      return ""
+      return null
     }
   }
 

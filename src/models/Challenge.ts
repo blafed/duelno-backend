@@ -1,15 +1,15 @@
 import { PlayerStatus } from "../types"
 import { makeid } from "../utils"
 import PlayerRef from "./PlayerRef"
+import WholeState from "./WholeState"
 
 export default class Challenge {
   roomId = ""
   bet = 0
   players: PlayerRef[]
 
-  gameOver(playerIndex: number) {
-    const winner = this.players[playerIndex]
-    const loser = this.players[1 - playerIndex]
+  gameOver(winner: PlayerRef) {
+    const loser = this.getOtherPlayer(winner)
 
     winner.data.coins += this.bet
     loser.data.coins -= this.bet
@@ -30,5 +30,17 @@ export default class Challenge {
       player.currentChallenge = this
       player.data.status = PlayerStatus.playing
     })
+  }
+
+  format() {
+    return {
+      bet: this.bet,
+      roomId: this.roomId,
+      players: this.players.map((x) => x.data),
+    }
+  }
+
+  getOtherPlayer(player: PlayerRef) {
+    return this.players[0] === player ? this.players[1] : this.players[0]
   }
 }

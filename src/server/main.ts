@@ -5,6 +5,7 @@ import PlayerData from "../models/PlayerData"
 import { isBreakStatement } from "typescript"
 import Invitation from "../models/Invitation"
 import { MIN_BET } from "./consts"
+import Challenge from "../models/Challenge"
 //using typescript to write a web socket server (prototype)
 //use ws package
 const wss = new WebSocket.Server({ port: 5000 })
@@ -165,9 +166,19 @@ wss.on("connection", (ws: WebSocket) => {
               return
             }
 
-            const roomId = lobby.makePlayerRandomPlay(player)
-            if (roomId) {
-              sendTo(ws, "play-random", { roomId })
+            const challenge = lobby.makePlayerRandomPlay(player)
+            if (challenge) {
+              const otherConnection = state.getConnectionOfPlayer(
+                challenge.getOtherPlayer(player)
+              )
+
+              if (!otherConnection) {
+                return
+              }
+
+              sendTo(otherConnection.ws, "challenge", { ...challenge.format() })
+              sendTo(ws, "challenge", { ...challenge.format() })
+              lobby.sendPlayerDataChangedManyToAll(challenge.players)
             } else {
             }
           }
@@ -225,14 +236,88 @@ wss.on("connection", (ws: WebSocket) => {
           break
 
         case "cancel-invitation":
+          {
+            const connection = state.getConnection(connectionId)
+
+            if (!connection) {
+              makeError("Invalid connection " + connection)
+              return
+            }
+
+            const player = connection.playerRef
+
+            if (player.currentInvitation) {
+              player.currentInvitation.cancel()
+            }
+          }
           break
         case "accept-invitation":
+          {
+            const connection = state.getConnection(connectionId)
+
+            if (!connection) {
+              makeError("Invalid connection " + connection)
+              return
+            }
+
+            const player = connection.playerRef
+            const lobby = state.lobbyManager.getLobbyById(player.lobbyId)
+
+            if (!player.currentInvitation) {
+              console.warn("No invitation  " + player)
+              return
+            }
+
+            if (!lobby) {
+              makeError("Invalid lobby " + player.lobbyId)
+              return
+            }
+            const challenge = player.currentInvitation.accept()
+
+            if (challenge) {
+              const otherConnection = state.getConnectionOfPlayer(
+                challenge.getOtherPlayer(player)
+              )
+
+              if (!otherConnection) {
+                return
+              }
+
+              sendTo(otherConnection.ws, "challenge", { ...challenge.format() })
+              sendTo(ws, "challenge", { ...challenge.format() })
+              lobby.sendPlayerDataChangedManyToAll(challenge.players)
+            }
+          }
           break
 
-        case "declare-win":
-          break
+        case "declare-game-over":
+          {
+            const isWin: boolean = json.isWin
+            const challengeId: string = json.challengeId
+            const connection = state.getConnection(connectionId)
+            if (!connection) {
+              makeError("Invalid connection " + connection)
+              return
+            }
 
-        case "declare-lose":
+            const player = connection.playerRef
+
+            if (!player.currentChallenge) {
+              console.warn("No challenge  " + player)
+              return
+            }
+
+            const challenge = player.currentChallenge
+
+            if (challengeId != challenge.roomId) {
+              console.warn("this challengeId is not playing " + challengeId)
+              return
+            }
+
+            challenge.gameOver(
+              isWin ? player : challenge.getOtherPlayer(player)
+            )
+          }
           break
 
         default:
