@@ -6,6 +6,7 @@ import { isBreakStatement } from "typescript"
 import Invitation from "../models/Invitation"
 import { MIN_BET } from "./consts"
 import Challenge from "../models/Challenge"
+import { sendToSocket } from "../func/core"
 //using typescript to write a web socket server (prototype)
 //use ws package
 const wss = new WebSocket.Server({ port: 5000 })
@@ -19,33 +20,38 @@ const connections: {
   }
 } = {}
 
-const sendTo = (ws: WebSocket, type: string, data: any) => {
-  return ws.send(type + ";" + JSON.stringify(data))
-}
+// const sendTo = (ws: WebSocket, type: string, data: any) => {
+//   return ws.send(type + ";" + JSON.stringify(data))
+// }
 
 const state = new WholeState()
 
 wss.on("connection", (ws: WebSocket) => {
   const makeError = (message: string) => {
-    sendTo(ws, "error", message)
+    sendToSocket(ws, "error", message)
     ws.close()
     console.error(message)
   }
   console.log("new connection ")
 
   const connection = state.createConnection(ws)
+  connection.send("connection", { connectionId: connection.connectionId })
 
-  sendTo(ws, "connection", { connectionId: connection.connectionId })
+  // sendTo(ws, "connection", { connectionId: connection.connectionId })
   //store the connection
 
   //generate random hash id
   ws.on("close", () => {
+    console.log("connection closed " + connection?.connectionId ?? "NO_ID")
+
+    connection.playerRef.lobby?.removePlayer(connection.playerRef)
     state.removeConnecition(ws)
   })
 
   ws.on("message", (message: string) => {
+    console.log(`Received: ${message}`)
+
     try {
-      console.log("messaged receive" + message)
       const json = JSON.parse(message)
 
       const playerId: string | undefined = json.playerId
@@ -81,9 +87,7 @@ wss.on("connection", (ws: WebSocket) => {
             const connection = state.getConnection(connectionId)
 
             if (!connection) {
-              sendTo(ws, "error", "Invalid connection " + connectionId)
-              ws.close()
-              console.error("Invalid connection " + connectionId)
+              makeError("Invalid connection " + connectionId)
               return
             }
 
@@ -98,22 +102,15 @@ wss.on("connection", (ws: WebSocket) => {
             const lobby = state.lobbyManager.findSuitableOrCreateNew()
             const connection = state.getConnection(connectionId)
             if (!connection) {
-              sendTo(ws, "error", "Invalid connection " + connectionId)
-              ws.close()
-              console.error("Invalid connection " + connectionId)
+              makeError("Invalid connection " + connectionId)
               return
             }
 
-            lobby.addPlayer(connection.playerRef, connection.ws)
+            lobby.addPlayer(connection.playerRef)
             lobby.sendLobbyDataToConnection(connection)
             lobby.sendToAll("player-joined", {
               ...connection.playerRef.data,
               playerId: connection.playerRef.data.playerId,
-              position: {
-                x: Math.random() * 100,
-                y: Math.random() * 100,
-              },
-              status: 0,
             })
           }
           break
@@ -123,26 +120,19 @@ wss.on("connection", (ws: WebSocket) => {
             const connection = state.getConnection(connectionId)
 
             if (!connection) {
-              sendTo(ws, "error", "Invalid connection " + connectionId)
-              ws.close()
-              console.error("Invalid connection " + connectionId)
+              makeError("Invalid connection " + connectionId)
               return
             }
 
-            const lobby = state.lobbyManager.getLobbyById(
-              connection.playerRef.lobbyId
-            )
+            const lobby = connection.playerRef.lobby
 
             if (!lobby) {
-              sendTo(
-                ws,
-                "error",
-                "Invalid lobby " + connection.playerRef.lobbyId
+              console.warn(
+                "Player " + connection.playerRef.data.playerId + " has no lobby"
               )
-              ws.close()
-              console.error("Invalid lobby " + connection.playerRef.lobbyId)
               return
             }
+
             lobby.sendToAll("player-left", connection.playerRef.data.playerId)
 
             lobby.removePlayer(connection.playerRef)
@@ -159,10 +149,10 @@ wss.on("connection", (ws: WebSocket) => {
               return
             }
             const player = connection.playerRef
-            const lobby = state.lobbyManager.getLobbyById(player.lobbyId)
+            const lobby = connection.playerRef.lobby
 
             if (!lobby) {
-              makeError("Invalid lobby " + player.lobbyId)
+              makeError("Player " + player.data.playerId + " has no lobby")
               return
             }
 
@@ -176,8 +166,8 @@ wss.on("connection", (ws: WebSocket) => {
                 return
               }
 
-              sendTo(otherConnection.ws, "challenge", { ...challenge.format() })
-              sendTo(ws, "challenge", { ...challenge.format() })
+              otherConnection.send("challenge", { ...challenge.format() })
+              connection.send("challenge", { ...challenge.format() })
               lobby.sendPlayerDataChangedManyToAll(challenge.players)
             } else {
             }
@@ -211,7 +201,27 @@ wss.on("connection", (ws: WebSocket) => {
               return
             }
 
-            sendTo(otherConnection.ws, "got-invitation", invitation)
+            otherConnection.send("got-invitation", invitation.format())
+          }
+          break
+
+        case "decline-invitation":
+          {
+            const connection = state.getConnection(connectionId)
+            if (!connection) {
+              makeError("Invalid connection " + connection)
+              return
+            }
+
+            const player = connection.playerRef
+
+            if (!player.currentInvitation) {
+              console.warn("No invitation  " + player)
+              return
+            }
+
+            player.currentInvitation.cancel()
+            player.currentInvitation = null
           }
           break
 
@@ -225,9 +235,9 @@ wss.on("connection", (ws: WebSocket) => {
             }
 
             const player = connection.playerRef
-            const lobby = state.lobbyManager.getLobbyById(player.lobbyId)
+            const lobby = connection.playerRef.lobby
             if (!lobby) {
-              makeError("Invalid lobby " + player.lobbyId)
+              makeError("Player " + player.data.playerId + " has no lobby")
               return
             }
 
@@ -248,6 +258,7 @@ wss.on("connection", (ws: WebSocket) => {
 
             if (player.currentInvitation) {
               player.currentInvitation.cancel()
+              player.currentInvitation = null
             }
           }
           break
@@ -261,7 +272,7 @@ wss.on("connection", (ws: WebSocket) => {
             }
 
             const player = connection.playerRef
-            const lobby = state.lobbyManager.getLobbyById(player.lobbyId)
+            const lobby = connection.playerRef.lobby
 
             if (!player.currentInvitation) {
               console.warn("No invitation  " + player)
@@ -269,7 +280,7 @@ wss.on("connection", (ws: WebSocket) => {
             }
 
             if (!lobby) {
-              makeError("Invalid lobby " + player.lobbyId)
+              makeError("Player " + player.data.playerId + " has no lobby")
               return
             }
             const challenge = player.currentInvitation.accept()
@@ -283,8 +294,9 @@ wss.on("connection", (ws: WebSocket) => {
                 return
               }
 
-              sendTo(otherConnection.ws, "challenge", { ...challenge.format() })
-              sendTo(ws, "challenge", { ...challenge.format() })
+              otherConnection.send("challenge", { ...challenge.format() })
+              connection.send("challenge", { ...challenge.format() })
+
               lobby.sendPlayerDataChangedManyToAll(challenge.players)
             }
           }
@@ -301,6 +313,7 @@ wss.on("connection", (ws: WebSocket) => {
             }
 
             const player = connection.playerRef
+            const lobby = connection.playerRef.lobby
 
             if (!player.currentChallenge) {
               console.warn("No challenge  " + player)
@@ -317,22 +330,38 @@ wss.on("connection", (ws: WebSocket) => {
             challenge.gameOver(
               isWin ? player : challenge.getOtherPlayer(player)
             )
+
+            lobby?.sendPlayerDataChangedManyToAll(challenge.players)
           }
           break
 
+        case "poll-lobby-info":
+          const connection = state.getConnection(connectionId)
+          if (!connection) {
+            makeError("Invalid connection " + connection)
+            return
+          }
+
+          const player = connection.playerRef
+          const lobby = connection.playerRef.lobby
+
+          if (!lobby) {
+            makeError("Player " + player.data.playerId + " has no lobby")
+            return
+          }
+
+          connection.lastPollTime = Date.now()
+
+          lobby.sendLobbyDataToConnection(connection)
+          break
+
         default:
-          console.log("Unknown message type " + json.type)
-
-          sendTo(ws, "error", "Unknown message type " + json.type)
-
-          ws.close()
+          makeError("Unknown message type " + json.type)
           break
       }
     } catch (e) {
       ws.close()
       console.error(e)
     }
-
-    console.log(`Received: ${message}`)
   })
 })

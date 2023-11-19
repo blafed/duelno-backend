@@ -14,7 +14,6 @@ import Challenge from "./Challenge"
 export default class Lobby {
   readonly id: number = 0
   private players: PlayerRef[] = []
-  private sockets: WebSocket[] = []
   private challenges: Challenge[] = []
 
   private randomPlayer: PlayerRef | null = null
@@ -25,15 +24,19 @@ export default class Lobby {
     this.id = id
   }
 
-  addPlayer(player: PlayerRef, ws: WebSocket) {
+  addPlayer(player: PlayerRef) {
     this.players.push(player)
-    this.sockets.push(ws)
-    player.lobbyId = this.id
+    player.lobby = this
+
+    player.data.position = {
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+    }
+    player.data.status = PlayerStatus.idle
   }
   removePlayer(player: PlayerRef) {
     const index = this.players.indexOf(player)
     this.players.splice(index, 1)
-    this.sockets.splice(index, 1)
   }
 
   getPlayerCount() {
@@ -41,8 +44,9 @@ export default class Lobby {
   }
 
   sendToAll(type: string, data: any) {
-    for (const socket of this.sockets) {
-      sendToSocket(socket, type, data)
+    for (const player of this.players) {
+      if (player.data.status == PlayerStatus.playing) continue
+      player.connection?.send(type, data)
     }
   }
 
@@ -67,8 +71,13 @@ export default class Lobby {
   makePlayerRandomPlay(player: PlayerRef): Challenge | null {
     if (player == this.randomPlayer) return null
     if (this.randomPlayer) {
-      return new Challenge(this.randomPlayer, player, RANDOM_PLAY_BET)
+      const challenge = new Challenge(
+        this.randomPlayer,
+        player,
+        RANDOM_PLAY_BET
+      )
       this.randomPlayer = null
+      return challenge
     } else {
       this.randomPlayer = player
       player.data.status = PlayerStatus.invitied

@@ -59,4 +59,15 @@ export default class Invitation {
     }
     return Date.now() - this.timeCreated > INVITATION_DURATION_MS
   }
+
+  format() {
+    return {
+      from: this.from.data,
+      to: this.to.data,
+      bet: this.bet,
+      invitationId: this.invitationId,
+      timeCreated: this.timeCreated,
+      isExpired: this.isExpired(),
+    }
+  }
 }

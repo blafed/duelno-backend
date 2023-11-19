@@ -10,6 +10,8 @@ export default class PlayerConnection {
   playerRef: PlayerRef
   connectionId: string = ""
 
+  lastPollTime: number = 0
+
   constructor(ws: WebSocket, playerRef: PlayerRef) {
     this.ws = ws
     this.playerRef = playerRef

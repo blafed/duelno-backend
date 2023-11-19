@@ -1,13 +1,15 @@
 import WebSocket from "ws"
-import { PlayerStatus } from "../types"
 import PlayerData from "./PlayerData"
 import { makeid } from "../utils"
 import Challenge from "./Challenge"
 import Invitation from "./Invitation"
+import Lobby from "./Lobby"
+import PlayerConnection from "./PlayerConnection"
 
 export default class PlayerRef {
+  connection: PlayerConnection | null = null
   data: PlayerData = new PlayerData()
-  lobbyId: number = -1
+  lobby: Lobby | null = null
   currentChallenge: Challenge | null = null
   currentInvitation: Invitation | null = null
 
