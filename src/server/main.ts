@@ -111,12 +111,12 @@ wss.on("connection", (ws: WebSocket) => {
               return
             }
 
-            lobby.addPlayer(connection.playerRef)
-            lobby.sendLobbyDataToConnection(connection)
             lobby.sendToAll("player-joined", {
               ...connection.playerRef.data,
               playerId: connection.playerRef.data.playerId,
             })
+            lobby.addPlayer(connection.playerRef)
+            lobby.sendLobbyDataToConnection(connection)
           }
           break
 

@@ -23,14 +23,23 @@ export default class Lobby {
   constructor(id: number) {
     this.id = id
   }
+  private generateAxis() {
+    // const max = Math.min(this.players.length * 10, 100)
+    // const min = 10
 
+    // let v = max
+    // if (v < min) v = min
+
+    // return Math.floor(Math.random() * v)
+    return Math.floor(Math.random() * 100)
+  }
   addPlayer(player: PlayerRef) {
     this.players.push(player)
     player.lobby = this
 
     player.data.position = {
-      x: Math.random() * 100,
-      y: Math.random() * 100,
+      x: this.generateAxis(),
+      y: this.generateAxis(),
     }
     player.data.status = PlayerStatus.idle
   }
