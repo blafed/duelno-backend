@@ -12,9 +12,9 @@ export default class PlayerConnection {
 
   lastPollTime: number = 0
 
-  constructor(ws: WebSocket, playerRef: PlayerRef) {
+  constructor(ws: WebSocket) {
     this.ws = ws
-    this.playerRef = playerRef
+    this.playerRef = new PlayerRef(this)
 
     this.connectionId = makeid(10)
   }

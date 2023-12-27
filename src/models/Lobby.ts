@@ -44,13 +44,16 @@ export default class Lobby {
   }
 
   sendToAll(type: string, data: any) {
+    console.log("send to all", type, data)
     for (const player of this.players) {
-      if (player.data.status == PlayerStatus.playing) continue
-      player.connection?.send(type, data)
+      player.connection.send(type, data)
     }
   }
 
   sendLobbyDataToConnection(connection: PlayerConnection) {
+    console.log(
+      "send lobby data to connection " + connection.playerRef.getPlayerId()
+    )
     connection.send("lobby-info", {
       id: this.id,
       players: this.players.map((x) => x.data),

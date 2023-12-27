@@ -40,7 +40,7 @@ export default class WholeState {
     this.lastConnection = null
     this.lastConnectionId = null
 
-    const connection = new PlayerConnection(ws, new PlayerRef())
+    const connection = new PlayerConnection(ws)
     this.connections.push(connection)
     return connection
   }
@@ -54,7 +54,5 @@ export default class WholeState {
     if (!connection) return
 
     this.connections.splice(this.connections.indexOf(connection), 1)
-
-    console.log(this.connections)
   }
 }

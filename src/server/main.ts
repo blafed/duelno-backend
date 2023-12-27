@@ -45,6 +45,11 @@ wss.on("connection", (ws: WebSocket) => {
     console.log("connection closed " + connection?.connectionId ?? "NO_ID")
 
     connection.playerRef.lobby?.removePlayer(connection.playerRef)
+
+    connection.playerRef.lobby?.sendToAll(
+      "player-left",
+      connection.playerRef.data.playerId
+    )
     state.removeConnecition(ws)
   })
 
@@ -256,7 +261,12 @@ wss.on("connection", (ws: WebSocket) => {
 
             const player = connection.playerRef
 
-            if (player.currentInvitation) {
+            if (
+              player.currentInvitation &&
+              player.currentInvitation.from == player
+            ) {
+              const otherPlayer = player.currentInvitation.to
+              otherPlayer.connection.send("invitation-canceled", {})
               player.currentInvitation.cancel()
               player.currentInvitation = null
             }

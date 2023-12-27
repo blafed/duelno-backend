@@ -7,7 +7,7 @@ import Lobby from "./Lobby"
 import PlayerConnection from "./PlayerConnection"
 
 export default class PlayerRef {
-  connection: PlayerConnection | null = null
+  connection: PlayerConnection
   data: PlayerData = new PlayerData()
   lobby: Lobby | null = null
   currentChallenge: Challenge | null = null
@@ -15,5 +15,9 @@ export default class PlayerRef {
 
   getPlayerId() {
     return this.data.playerId
+  }
+
+  constructor(connection: PlayerConnection) {
+    this.connection = connection
   }
 }
