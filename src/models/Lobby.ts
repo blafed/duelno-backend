@@ -37,10 +37,10 @@ export default class Lobby {
     this.players.push(player)
     player.lobby = this
 
-    player.data.position = {
-      x: this.generateAxis(),
-      y: this.generateAxis(),
-    }
+    // player.data.position = {
+    //   x: this.generateAxis(),
+    //   y: this.generateAxis(),
+    // }
     player.data.status = PlayerStatus.idle
   }
   removePlayer(player: PlayerRef) {
