@@ -9,7 +9,7 @@ import Challenge from "../models/Challenge"
 import { sendToSocket } from "../func/core"
 //using typescript to write a web socket server (prototype)
 //use ws package
-const wss = new WebSocket.Server({ port: 5000 })
+const wss = new WebSocket.Server({ port: 0 })
 
 //create a connection event
 
