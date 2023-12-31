@@ -7,9 +7,13 @@ import Invitation from "../models/Invitation"
 import { MIN_BET } from "./consts"
 import Challenge from "../models/Challenge"
 import { sendToSocket } from "../func/core"
+
+require("dotenv").config()
 //using typescript to write a web socket server (prototype)
 //use ws package
-const wss = new WebSocket.Server({ port: 5000 })
+const wss = new WebSocket.Server({
+  port: parseInt(process.env.PORT || "5000"),
+})
 
 //create a connection event
 
